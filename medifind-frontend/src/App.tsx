@@ -11,6 +11,7 @@ import LoginPage       from './pages/LoginPage';
 import RegisterPage    from './pages/RegisterPage';
 import ShopDashboard   from './pages/shop/ShopDashboard';
 import ShopInventory   from './pages/shop/ShopInventory';
+import ShopSettings    from './pages/shop/ShopSettings';
 import NotFoundPage    from './pages/NotFoundPage';
 
 export default function App() {
@@ -36,6 +37,11 @@ export default function App() {
           <Route path="/dashboard/inventory" element={
             <ProtectedRoute requiredRole="shop_owner">
               <ShopInventory />
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard/settings" element={
+            <ProtectedRoute requiredRole="shop_owner">
+              <ShopSettings />
             </ProtectedRoute>
           } />
 
