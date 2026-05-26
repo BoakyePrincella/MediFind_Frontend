@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { register } from '../api/auth';
+import PasswordInput from '../components/ui/PasswordInput';
 
 export default function RegisterPage() {
   const { login, user } = useAuth();
@@ -156,8 +157,7 @@ export default function RegisterPage() {
             <label className="block text-xs font-medium text-gray-600 mb-1.5">
               Password
             </label>
-            <input
-              type="password"
+            <PasswordInput
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder="At least 8 characters"
@@ -175,8 +175,7 @@ export default function RegisterPage() {
             <label className="block text-xs font-medium text-gray-600 mb-1.5">
               Confirm password
             </label>
-            <input
-              type="password"
+            <PasswordInput
               value={confirm}
               onChange={e => setConfirm(e.target.value)}
               placeholder="••••••••"

@@ -16,6 +16,11 @@ export const addToInventory = (data: {
   product_id: number; price: number; in_stock: boolean; notes?: string;
 }) => apiClient.post<ShopProduct>('/shop/inventory', data);
 
+export const createInventoryProduct = (data: FormData) =>
+  apiClient.post<ShopProduct>('/shop/inventory/products', data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+
 export const updateInventoryItem = (id: number, data: {
   price?: number; in_stock?: boolean; notes?: string;
 }) => apiClient.put<ShopProduct>(`/shop/inventory/${id}`, data);

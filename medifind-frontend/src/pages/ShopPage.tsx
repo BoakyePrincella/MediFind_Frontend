@@ -4,6 +4,7 @@ import Layout from '../components/layout/Layout';
 import Spinner from '../components/ui/Spinner';
 import { getShop } from '../api/public';
 import type { Shop, ShopProduct } from '../types';
+import { storageUrl } from '../utils/media';
 
 export default function ShopPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -66,7 +67,7 @@ export default function ShopPage() {
             <div className="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center text-sm font-medium text-green-700 shrink-0 overflow-hidden">
               {shop.logo ? (
                 <img
-                  src={`${import.meta.env.VITE_STORAGE_URL}/${shop.logo}`}
+                  src={storageUrl(shop.logo)}
                   alt={shop.name}
                   className="w-full h-full object-cover"
                 />

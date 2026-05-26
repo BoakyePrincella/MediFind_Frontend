@@ -4,6 +4,7 @@ import Layout from '../components/layout/Layout';
 import Spinner from '../components/ui/Spinner';
 import { getProduct } from '../api/public';
 import type { Product, ShopProduct } from '../types';
+import { storageUrl } from '../utils/media';
 
 export default function ProductPage() {
   const { slug }   = useParams<{ slug: string }>();
@@ -82,7 +83,7 @@ export default function ProductPage() {
             <div className="w-28 h-28 rounded-xl bg-green-50 flex items-center justify-center text-5xl shrink-0 overflow-hidden">
               {product.image ? (
                 <img
-                  src={`${import.meta.env.VITE_STORAGE_URL}/${product.image}`}
+                  src={storageUrl(product.image)}
                   alt={product.name}
                   className="w-full h-full object-cover"
                 />

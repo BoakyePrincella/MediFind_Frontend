@@ -4,11 +4,12 @@ import Spinner from '../../components/ui/Spinner';
 import {
   getInventory,
   addToInventory,
+  createInventoryProduct,
   updateInventoryItem,
   removeFromInventory,
 } from '../../api/shop';
-import { searchProducts } from '../../api/public';
-import type { ShopProduct, Product } from '../../types';
+import { getCategories, searchProducts } from '../../api/public';
+import type { ShopProduct, Product, Category } from '../../types';
 
 export default function ShopInventory() {
   const [inventory,  setInventory]  = useState<ShopProduct[]>([]);
@@ -23,6 +24,19 @@ export default function ShopInventory() {
   const [catLoading, setCatLoading] = useState(false);
   const [addingId,   setAddingId]   = useState<number | null>(null);
   const [newPrice,   setNewPrice]   = useState<Record<number, string>>({});
+  const [addMode,    setAddMode]    = useState<'existing' | 'new'>('existing');
+
+  // New product form state
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [newName,    setNewName]    = useState('');
+  const [newBrand,   setNewBrand]   = useState('');
+  const [newDesc,    setNewDesc]    = useState('');
+  const [newCategory,setNewCategory]= useState('');
+  const [newProductPrice, setNewProductPrice] = useState('');
+  const [newNotes,   setNewNotes]   = useState('');
+  const [newInStock, setNewInStock] = useState(true);
+  const [newImage,   setNewImage]   = useState<File | null>(null);
+  const [creating,   setCreating]   = useState(false);
 
   // Inline edit state
   const [editingId,  setEditingId]  = useState<number | null>(null);
@@ -58,6 +72,13 @@ export default function ShopInventory() {
     return () => clearTimeout(timer);
   }, [catSearch, showAdd]);
 
+  useEffect(() => {
+    if (!showAdd || categories.length > 0) return;
+    getCategories()
+      .then(r => setCategories(r.data))
+      .catch(() => setError('Could not load product categories.'));
+  }, [categories.length, showAdd]);
+
   // Add a product to inventory
   const handleAdd = async (product: Product) => {
     const price = parseFloat(newPrice[product.id] ?? '');
@@ -85,6 +106,61 @@ export default function ShopInventory() {
       );
     } finally {
       setAddingId(null);
+    }
+  };
+
+  const resetNewProductForm = () => {
+    setNewName('');
+    setNewBrand('');
+    setNewDesc('');
+    setNewCategory('');
+    setNewProductPrice('');
+    setNewNotes('');
+    setNewInStock(true);
+    setNewImage(null);
+  };
+
+  const handleCreateProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const price = parseFloat(newProductPrice);
+
+    if (!newCategory) {
+      setError('Please select a category.');
+      return;
+    }
+
+    if (!price || price <= 0) {
+      setError('Please enter a valid price.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('name', newName.trim());
+    formData.append('brand', newBrand.trim());
+    formData.append('description', newDesc.trim());
+    formData.append('category_id', newCategory);
+    formData.append('price', String(price));
+    formData.append('in_stock', newInStock ? '1' : '0');
+    formData.append('notes', newNotes.trim());
+    if (newImage) formData.append('image', newImage);
+
+    setCreating(true);
+    setError('');
+    try {
+      const { data } = await createInventoryProduct(formData);
+      setInventory(prev => [data, ...prev]);
+      resetNewProductForm();
+      setShowAdd(false);
+    } catch (err: any) {
+      const errs = err.response?.data?.errors;
+      if (errs) {
+        const first = Object.values(errs)[0] as string[];
+        setError(first[0]);
+      } else {
+        setError(err.response?.data?.message ?? 'Could not create product.');
+      }
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -135,6 +211,11 @@ export default function ShopInventory() {
     }
   };
 
+  const allCategories = categories.flatMap(cat => [
+    cat,
+    ...(cat.children ?? []),
+  ]);
+
   return (
     <ShopLayout>
       <div className="p-8">
@@ -171,9 +252,38 @@ export default function ShopInventory() {
         {/* ── Add product panel ── */}
         {showAdd && (
           <div className="bg-white rounded-xl border border-gray-100 p-5 mb-6">
-            <h2 className="text-sm font-semibold text-gray-700 mb-4">
-              Add from product catalogue
-            </h2>
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <h2 className="text-sm font-semibold text-gray-700">
+                Add product
+              </h2>
+              <div className="flex rounded-xl bg-gray-50 p-1">
+                <button
+                  type="button"
+                  onClick={() => setAddMode('existing')}
+                  className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                    addMode === 'existing'
+                      ? 'bg-white text-green-700 shadow-sm font-medium'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Existing
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAddMode('new')}
+                  className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                    addMode === 'new'
+                      ? 'bg-white text-green-700 shadow-sm font-medium'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  New product
+                </button>
+              </div>
+            </div>
+
+            {addMode === 'existing' ? (
+              <>
 
             {/* Search catalogue */}
             <input
@@ -257,6 +367,129 @@ export default function ShopInventory() {
                 })}
               </div>
             )}
+              </>
+            ) : (
+              <form onSubmit={handleCreateProduct} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Product name</label>
+                    <input
+                      value={newName}
+                      onChange={e => setNewName(e.target.value)}
+                      placeholder="e.g. Paracetamol 500mg"
+                      required
+                      autoFocus
+                      className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-green-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                      Brand
+                      <span className="text-gray-300 font-normal ml-1">(optional)</span>
+                    </label>
+                    <input
+                      value={newBrand}
+                      onChange={e => setNewBrand(e.target.value)}
+                      placeholder="e.g. Panadol"
+                      className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-green-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Category</label>
+                    <select
+                      value={newCategory}
+                      onChange={e => setNewCategory(e.target.value)}
+                      required
+                      className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-green-400 bg-white"
+                    >
+                      <option value="">Select a category</option>
+                      {allCategories.map(cat => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.parent_id ? `  ↳ ${cat.name}` : cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Price</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+                        GH₵
+                      </span>
+                      <input
+                        type="number"
+                        value={newProductPrice}
+                        onChange={e => setNewProductPrice(e.target.value)}
+                        placeholder="0.00"
+                        min="0"
+                        step="0.01"
+                        required
+                        className="w-full border border-gray-200 rounded-xl pl-11 pr-4 py-2.5 text-sm outline-none focus:border-green-400"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                    Description
+                    <span className="text-gray-300 font-normal ml-1">(optional)</span>
+                  </label>
+                  <textarea
+                    value={newDesc}
+                    onChange={e => setNewDesc(e.target.value)}
+                    placeholder="What is this product used for?"
+                    rows={2}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-green-400 resize-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                      Notes
+                      <span className="text-gray-300 font-normal ml-1">(optional)</span>
+                    </label>
+                    <input
+                      value={newNotes}
+                      onChange={e => setNewNotes(e.target.value)}
+                      placeholder="Prescription required"
+                      className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-green-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                      Image
+                      <span className="text-gray-300 font-normal ml-1">(optional)</span>
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={e => setNewImage(e.target.files?.[0] ?? null)}
+                      className="w-full text-sm text-gray-600 file:mr-3 file:text-xs file:font-medium file:bg-green-50 file:text-green-600 file:border-0 file:px-3 file:py-1.5 file:rounded-lg"
+                    />
+                  </div>
+                </div>
+
+                <label className="flex w-fit items-center gap-2 text-sm text-gray-600">
+                  <input
+                    type="checkbox"
+                    checked={newInStock}
+                    onChange={e => setNewInStock(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-400"
+                  />
+                  In stock
+                </label>
+
+                <button
+                  type="submit"
+                  disabled={creating}
+                  className="bg-green-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-green-700 disabled:opacity-60 transition-colors"
+                >
+                  {creating ? 'Creating...' : 'Create and add to inventory'}
+                </button>
+              </form>
+            )}
           </div>
         )}
 
@@ -270,7 +503,7 @@ export default function ShopInventory() {
               Your inventory is empty
             </p>
             <p className="text-xs text-gray-400 mt-1">
-              Click "Add product" to start adding products from the catalogue
+              Click "Add product" to create or add products to your shop
             </p>
           </div>
         ) : (

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/layout/AdminLayout';
+import PasswordInput from '../../components/ui/PasswordInput';
 import Spinner from '../../components/ui/Spinner';
 import {
   adminGetShops,
@@ -167,7 +168,7 @@ export default function AdminShops() {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">Password</label>
-                  <input value={ownerPassword} onChange={e => setOwnerPassword(e.target.value)} required type="password" placeholder="Min 8 characters"
+                  <PasswordInput value={ownerPassword} onChange={e => setOwnerPassword(e.target.value)} required placeholder="Min 8 characters"
                     className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-green-400" />
                 </div>
                 <div>

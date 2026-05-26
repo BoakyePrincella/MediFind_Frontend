@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { Product } from '../../types';
+import { storageUrl } from '../../utils/media';
 
 export default function ProductCard({ product }: { product: Product }) {
   return (
@@ -11,7 +12,7 @@ export default function ProductCard({ product }: { product: Product }) {
       <div className="h-32 bg-green-50 flex items-center justify-center text-4xl">
         {product.image ? (
           <img
-            src={`${import.meta.env.VITE_API_URL?.replace('/api/v1', '')}/storage/${product.image}`}
+            src={storageUrl(product.image)}
             alt={product.name}
             className="h-full w-full object-cover"
           />
