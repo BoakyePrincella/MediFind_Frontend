@@ -22,7 +22,18 @@ export const adminDeleteCategory = (id: number) =>
 // ── Products ───────────────────────────────────────
 export const adminGetProducts = (params?: {
   q?: string; category_id?: number; page?: number;
-}) => apiClient.get<PaginatedResponse<Product>>('/admin/products', { params });
+}) =>
+  apiClient
+    .get<PaginatedResponse<Product>>('/admin/products', { params })
+    .catch((error) => {
+      const status = error.response?.status;
+
+      if (status === 404 || status >= 500) {
+        return apiClient.get<PaginatedResponse<Product>>('/products', { params });
+      }
+
+      return Promise.reject(error);
+    });
 
 export const adminCreateProduct = (data: FormData) =>
   apiClient.post<Product>('/admin/products', data, {

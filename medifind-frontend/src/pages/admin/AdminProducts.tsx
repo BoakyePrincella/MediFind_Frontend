@@ -39,13 +39,16 @@ export default function AdminProducts() {
 
   const load = () => {
     setLoading(true);
+    setError('');
     adminGetProducts({ q: search || undefined, page })
       .then(r => {
         setProducts(r.data.data);
         setLastPage(r.data.last_page);
         setTotal(r.data.total);
       })
-      .catch(() => setError('Could not load products.'))
+      .catch((err: any) => {
+        setError(err.response?.data?.message ?? 'Could not load products.');
+      })
       .finally(() => setLoading(false));
   };
 
