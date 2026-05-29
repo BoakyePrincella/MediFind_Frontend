@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/layout/AdminLayout';
+import LocationPicker from '../../components/ui/LocationPicker';
 import PasswordInput from '../../components/ui/PasswordInput';
 import Spinner from '../../components/ui/Spinner';
 import {
@@ -204,19 +205,22 @@ export default function AdminShops() {
                   <input value={address} onChange={e => setAddress(e.target.value)} required placeholder="45 Oxford Street, Osu"
                     className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-green-400" />
                 </div>
-                <div>
+
+                <div className="col-span-2">
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                    Latitude <span className="text-gray-300 font-normal">(optional)</span>
+                    Shop location
+                    <span className="text-gray-300 font-normal ml-1">
+                      (type address or click map)
+                    </span>
                   </label>
-                  <input value={latitude} onChange={e => setLatitude(e.target.value)} placeholder="5.5600" type="number" step="any"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-green-400" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                    Longitude <span className="text-gray-300 font-normal">(optional)</span>
-                  </label>
-                  <input value={longitude} onChange={e => setLongitude(e.target.value)} placeholder="-0.1870" type="number" step="any"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-green-400" />
+                  <LocationPicker
+                    onSelect={result => {
+                      setAddress(result.address);
+                      setLatitude(String(result.latitude));
+                      setLongitude(String(result.longitude));
+                    }}
+                    defaultAddress={address}
+                  />
                 </div>
 
                 {/* Delivery toggle */}

@@ -52,12 +52,12 @@ export default function Navbar() {
           </div>
         </form>
 
-        {/* Nav links */}
-        <div className="hidden md:flex items-center gap-6 text-sm text-gray-500">
-          <Link to="/search" className="hover:text-gray-800 transition-colors">Browse</Link>
-          <Link to="/search?category=pharmacy" className="hover:text-gray-800 transition-colors">Pharmacy</Link>
-          <Link to="/search?category=cosmetics" className="hover:text-gray-800 transition-colors">Cosmetics</Link>
-        </div>
+          {/* Nav links */}
+          {/* <div className="hidden md:flex items-center gap-6 text-sm text-gray-500">
+            <Link to="/search" className="hover:text-gray-800 transition-colors">Browse</Link>
+            <Link to="/search?category=pharmacy" className="hover:text-gray-800 transition-colors">Pharmacy</Link>
+            <Link to="/search?category=cosmetics" className="hover:text-gray-800 transition-colors">Cosmetics</Link>
+          </div> */}
 
         {/* Auth area */}
         <div className="ml-auto flex items-center gap-2 shrink-0">

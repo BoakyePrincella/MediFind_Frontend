@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { GoogleMap, Marker, Circle } from '@react-google-maps/api';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import ProductCard from '../components/ui/ProductCard';
 import ShopCard from '../components/ui/ShopCard';
 import Spinner from '../components/ui/Spinner';
+import { useGoogleMaps } from '../hooks/useGoogleMaps';
 import { searchProducts, getCategories, getShops } from '../api/public';
 import type { Product, Category, Shop } from '../types';
 
@@ -17,6 +19,8 @@ export default function SearchPage() {
   const type       = searchParams.get('type') ?? 'products'; // 'products' or 'shops'
   const lat        = searchParams.get('lat') ?? '';
   const lng        = searchParams.get('lng') ?? '';
+  const radiusKm   = searchParams.get('radius_km') ?? '5';
+  const { isLoaded } = useGoogleMaps();
 
   const [query,      setQuery]      = useState(q);
   const [products,   setProducts]   = useState<Product[]>([]);
@@ -26,6 +30,7 @@ export default function SearchPage() {
   const [page,       setPage]       = useState(1);
   const [lastPage,   setLastPage]   = useState(1);
   const [loading,    setLoading]    = useState(true);
+  const [locating,   setLocating]   = useState(false);
 
   // Load categories once for the sidebar filter
   useEffect(() => {
@@ -44,6 +49,7 @@ export default function SearchPage() {
         city:      city || undefined,
         lat:       lat  ? Number(lat)  : undefined,
         lng:       lng  ? Number(lng)  : undefined,
+        radius_km:  lat && lng ? Number(radiusKm) : undefined,
         page,
       }).then(r => {
         setShops(r.data.data);
@@ -63,7 +69,7 @@ export default function SearchPage() {
         setLastPage(r.data.last_page);
       }).finally(() => setLoading(false));
     }
-  }, [q, categoryId, city, type, lat, lng, page]);
+  }, [q, categoryId, city, type, lat, lng, radiusKm, page]);
 
   // When user types and submits the search bar
   const handleSearch = (e: React.FormEvent) => {
@@ -82,6 +88,38 @@ export default function SearchPage() {
       delete current[key];
       setSearchParams({ ...current, page: '1' });
     }
+  };
+
+  const useMyLocation = () => {
+    if (!navigator.geolocation) return;
+
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        const current = Object.fromEntries(searchParams.entries());
+        setPage(1);
+        setSearchParams({
+          ...current,
+          type: 'shops',
+          lat: String(position.coords.latitude),
+          lng: String(position.coords.longitude),
+          radius_km: current.radius_km ?? radiusKm,
+          page: '1',
+        });
+        setLocating(false);
+      },
+      () => setLocating(false),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const clearLocation = () => {
+    const current = Object.fromEntries(searchParams.entries());
+    delete current.lat;
+    delete current.lng;
+    delete current.radius_km;
+    setPage(1);
+    setSearchParams({ ...current, page: '1' });
   };
 
   return (
@@ -186,6 +224,47 @@ export default function SearchPage() {
               ))}
             </div>
 
+            {type === 'shops' && (
+              <div className="mt-6">
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">
+                  Distance
+                </p>
+                <button
+                  onClick={useMyLocation}
+                  disabled={locating}
+                  className={`w-full text-left text-sm px-3 py-2 rounded-lg transition-colors ${
+                    lat && lng
+                      ? 'bg-blue-50 text-blue-700 font-medium'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  } disabled:opacity-60`}
+                >
+                  {locating ? 'Finding location...' : 'Near me'}
+                </button>
+
+                {lat && lng && (
+                  <>
+                    <select
+                      value={radiusKm}
+                      onChange={e => applyFilter('radius_km', e.target.value)}
+                      className="mt-2 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-600 outline-none focus:border-green-400 bg-white"
+                    >
+                      {[5, 10, 20, 50].map(radius => (
+                        <option key={radius} value={radius}>
+                          Within {radius} km
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={clearLocation}
+                      className="mt-2 text-xs text-gray-400 hover:text-gray-600"
+                    >
+                      Clear location
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
           </aside>
 
           {/* ── Results area ── */}
@@ -272,11 +351,54 @@ export default function SearchPage() {
                     <p className="text-xs mt-1">Try a different city or remove filters</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {shops.map(s => (
-                      <ShopCard key={s.id} shop={s} />
-                    ))}
-                  </div>
+                  <>
+                    {lat && lng && isLoaded && (
+                      <div className="mb-4 rounded-xl overflow-hidden border border-gray-100">
+                        <GoogleMap
+                          mapContainerStyle={{ width: '100%', height: '200px' }}
+                          center={{ lat: Number(lat), lng: Number(lng) }}
+                          zoom={13}
+                          options={{
+                            streetViewControl: false,
+                            mapTypeControl:    false,
+                            fullscreenControl: false,
+                            zoomControl:       false,
+                          }}
+                        >
+                          {/* Customer location marker */}
+                          <Marker
+                            position={{ lat: Number(lat), lng: Number(lng) }}
+                            icon={{
+                              path: google.maps.SymbolPath.CIRCLE,
+                              scale: 8,
+                              fillColor: '#1D9E75',
+                              fillOpacity: 1,
+                              strokeColor: '#fff',
+                              strokeWeight: 2,
+                            }}
+                          />
+                          {/* Search radius circle */}
+                          <Circle
+                            center={{ lat: Number(lat), lng: Number(lng) }}
+                            radius={Number(radiusKm) * 1000}
+                            options={{
+                              fillColor:     '#1D9E75',
+                              fillOpacity:   0.08,
+                              strokeColor:   '#1D9E75',
+                              strokeOpacity: 0.3,
+                              strokeWeight:  1,
+                            }}
+                          />
+                        </GoogleMap>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {shops.map(s => (
+                        <ShopCard key={s.id} shop={s} />
+                      ))}
+                    </div>
+                  </>
                 )}
               </>
             )}

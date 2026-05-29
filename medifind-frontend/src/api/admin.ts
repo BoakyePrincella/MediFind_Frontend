@@ -28,7 +28,7 @@ export const adminGetProducts = (params?: {
     .catch((error) => {
       const status = error.response?.status;
 
-      if (status === 404 || status >= 500) {
+      if (status === 404) {
         return apiClient.get<PaginatedResponse<Product>>('/products', { params });
       }
 
