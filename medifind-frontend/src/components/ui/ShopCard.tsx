@@ -24,8 +24,21 @@ export default function ShopCard({ shop }: { shop: Shop }) {
 
         <p className="text-xs text-gray-400 mt-0.5 truncate">
           📍 {shop.address}, {shop.city}
-          {shop.distance != null && ` · ${shop.distance.toFixed(1)} km`}
+          {shop.distance != null && (
+            <span className="ml-1 text-blue-500 font-medium">
+              · {shop.distance < 1
+                ? `${(shop.distance * 1000).toFixed(0)} m away`
+                : `${shop.distance.toFixed(1)} km away`
+              }
+            </span>
+          )}
         </p>
+
+        {shop.owner?.fullname && (
+          <p className="text-xs text-gray-400 mt-1 truncate">
+            Owner: {shop.owner.fullname}
+          </p>
+        )}
 
         <div className="flex gap-2 mt-2 flex-wrap">
           {shop.offers_delivery && (

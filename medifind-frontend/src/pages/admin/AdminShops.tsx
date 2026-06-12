@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/layout/AdminLayout';
-import LocationPicker from '../../components/ui/LocationPicker';
+import AddressAutocomplete from '../../components/ui/AddressAutocomplete';
 import PasswordInput from '../../components/ui/PasswordInput';
 import Spinner from '../../components/ui/Spinner';
 import {
@@ -31,9 +31,10 @@ export default function AdminShops() {
   const [ownerPhone,    setOwnerPhone]    = useState('');
   const [shopName,      setShopName]      = useState('');
   const [address,       setAddress]       = useState('');
+  const [addressValid,  setAddressValid]  = useState(false);
+  const [latitude,      setLatitude]      = useState<number | null>(null);
+  const [longitude,     setLongitude]     = useState<number | null>(null);
   const [city,          setCity]          = useState('Accra');
-  const [latitude,      setLatitude]      = useState('');
-  const [longitude,     setLongitude]     = useState('');
   const [offersDelivery,setOffersDelivery]= useState(false);
   const [deliveryRadius,setDeliveryRadius]= useState('');
 
@@ -56,8 +57,14 @@ export default function AdminShops() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
     setError('');
+
+    if (!addressValid) {
+      setError('Please choose a valid shop address from the suggestions.');
+      return;
+    }
+
+    setSaving(true);
     try {
       await adminCreateShop({
         owner_name:         ownerName,
@@ -67,15 +74,17 @@ export default function AdminShops() {
         name:               shopName,
         address,
         city,
-        latitude:           latitude  ? Number(latitude)  : undefined,
-        longitude:          longitude ? Number(longitude) : undefined,
+        latitude:           latitude ?? undefined,
+        longitude:          longitude ?? undefined,
         offers_delivery:    offersDelivery,
         delivery_radius_km: deliveryRadius ? Number(deliveryRadius) : undefined,
       });
       // Reset form
       setOwnerName(''); setOwnerEmail(''); setOwnerPassword('');
       setOwnerPhone(''); setShopName(''); setAddress('');
-      setCity('Accra'); setLatitude(''); setLongitude('');
+      setAddressValid(false);
+      setLatitude(null); setLongitude(null);
+      setCity('Accra');
       setOffersDelivery(false); setDeliveryRadius('');
       setShowForm(false);
       setSuccess('Shop and owner account created successfully.');
@@ -201,25 +210,28 @@ export default function AdminShops() {
                   </select>
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Address</label>
-                  <input value={address} onChange={e => setAddress(e.target.value)} required placeholder="45 Oxford Street, Osu"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-green-400" />
-                </div>
-
-                <div className="col-span-2">
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                    Shop location
-                    <span className="text-gray-300 font-normal ml-1">
-                      (type address or click map)
-                    </span>
-                  </label>
-                  <LocationPicker
-                    onSelect={result => {
-                      setAddress(result.address);
-                      setLatitude(String(result.latitude));
-                      setLongitude(String(result.longitude));
+                  <AddressAutocomplete
+                    value={address}
+                    onChange={setAddress}
+                    onValidityChange={valid => {
+                      setAddressValid(valid);
+                      if (!valid) {
+                        setLatitude(null);
+                        setLongitude(null);
+                      }
                     }}
-                    defaultAddress={address}
+                    onSelect={result => {
+                      setLatitude(result.latitude);
+                      setLongitude(result.longitude);
+                      if (result.city === 'Accra' || result.city === 'Kumasi') {
+                        setCity(result.city);
+                      } else if (/ashanti|ejisu|bonwire/i.test(result.address)) {
+                        setCity('Kumasi');
+                      }
+                    }}
+                    required
+                    placeholder="Start typing the shop address"
+                    helperText="Choose an address from the suggestions so coordinates are set correctly."
                   />
                 </div>
 
@@ -251,7 +263,7 @@ export default function AdminShops() {
 
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || !addressValid}
               className="bg-green-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-green-700 disabled:opacity-60 transition-colors"
             >
               {saving ? 'Creating...' : 'Create shop and owner account'}

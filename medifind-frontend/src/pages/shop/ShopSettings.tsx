@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import ShopLayout from '../../components/layout/ShopLayout';
+import AddressAutocomplete from '../../components/ui/AddressAutocomplete';
 import Spinner from '../../components/ui/Spinner';
 import { getMyShop, updateMyShop } from '../../api/shop';
 import type { Shop } from '../../types';
@@ -15,6 +16,9 @@ export default function ShopSettings() {
   const [description,       setDescription]       = useState('');
   const [phone,             setPhone]             = useState('');
   const [address,           setAddress]           = useState('');
+  const [addressValid,      setAddressValid]      = useState(true);
+  const [latitude,          setLatitude]          = useState<number | null>(null);
+  const [longitude,         setLongitude]         = useState<number | null>(null);
   const [offersDelivery,    setOffersDelivery]    = useState(false);
   const [deliveryRadius,    setDeliveryRadius]    = useState('');
 
@@ -26,6 +30,9 @@ export default function ShopSettings() {
         setDescription(s.description ?? '');
         setPhone(s.phone ?? '');
         setAddress(s.address ?? '');
+        setAddressValid(Boolean(s.address));
+        setLatitude(s.latitude);
+        setLongitude(s.longitude);
         setOffersDelivery(s.offers_delivery);
         setDeliveryRadius(s.delivery_radius_km ? String(s.delivery_radius_km) : '');
       })
@@ -39,11 +46,21 @@ export default function ShopSettings() {
     setError('');
     setSuccess(false);
 
+    if (!addressValid) {
+      setSaving(false);
+      setError('Please choose a valid address from the suggestions before saving.');
+      return;
+    }
+
     // We use FormData because the endpoint accepts file uploads too
     const formData = new FormData();
     formData.append('description',       description);
     formData.append('phone',             phone);
     formData.append('address',           address);
+    if (latitude != null && longitude != null) {
+      formData.append('latitude',         String(latitude));
+      formData.append('longitude',        String(longitude));
+    }
     formData.append('offers_delivery',   offersDelivery ? '1' : '0');
     if (offersDelivery && deliveryRadius) {
       formData.append('delivery_radius_km', deliveryRadius);
@@ -52,6 +69,8 @@ export default function ShopSettings() {
     try {
       const updated = await updateMyShop(formData);
       setShop(updated.data);
+      setAddress(updated.data.address ?? address);
+      setAddressValid(true);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: any) {
@@ -125,15 +144,22 @@ export default function ShopSettings() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">
-              Address
-            </label>
-            <input
-              type="text"
+            <AddressAutocomplete
               value={address}
-              onChange={e => setAddress(e.target.value)}
+              onChange={setAddress}
+              onValidityChange={valid => {
+                setAddressValid(valid);
+                if (!valid) {
+                  setLatitude(null);
+                  setLongitude(null);
+                }
+              }}
+              onSelect={result => {
+                setLatitude(result.latitude);
+                setLongitude(result.longitude);
+              }}
               placeholder="Street address"
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-green-400 transition-colors"
+              helperText="If you have moved, choose your new address from the suggestions and your map location updates automatically."
             />
           </div>
 
@@ -194,7 +220,7 @@ export default function ShopSettings() {
           {/* Save button */}
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || !addressValid}
             className="w-full bg-green-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-60"
           >
             {saving ? 'Saving...' : 'Save changes'}

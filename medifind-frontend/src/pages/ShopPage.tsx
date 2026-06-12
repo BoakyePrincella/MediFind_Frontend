@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
-import { GoogleMap, Marker } from '@react-google-maps/api';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import Spinner from '../components/ui/Spinner';
-import { useGoogleMaps } from '../hooks/useGoogleMaps';
 import { getShop } from '../api/public';
 import type { Shop, ShopProduct } from '../types';
 import { storageUrl } from '../utils/media';
@@ -11,7 +9,6 @@ import { storageUrl } from '../utils/media';
 export default function ShopPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { isLoaded } = useGoogleMaps();
 
   const [shop, setShop] = useState<Shop | null>(null);
   const [products, setProducts] = useState<ShopProduct[]>([]);
@@ -122,6 +119,15 @@ export default function ShopPage() {
                 <span className="text-xs bg-gray-100 text-gray-500 px-3 py-1.5 rounded-full">
                   Walk-in
                 </span>
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs bg-green-50 text-green-600 px-3 py-1.5 rounded-full hover:bg-green-100 transition-colors font-medium"
+                  onClick={e => e.stopPropagation()}
+                >
+                  Get directions
+                </a>
                 {shop.phone && (
                   <a
                     href={`tel:${shop.phone}`}
@@ -131,37 +137,6 @@ export default function ShopPage() {
                   </a>
                   )}
               </div>
-
-              {shop.latitude && shop.longitude && isLoaded && (
-                <div className="mt-5 rounded-xl overflow-hidden border border-gray-100">
-                  <GoogleMap
-                    mapContainerStyle={{ width: '100%', height: '180px' }}
-                    center={{ lat: shop.latitude, lng: shop.longitude }}
-                    zoom={16}
-                    options={{
-                      streetViewControl: false,
-                      mapTypeControl:    false,
-                      fullscreenControl: false,
-                      zoomControl:       false,
-                      gestureHandling:   'none',
-                    }}
-                  >
-                    <Marker
-                      position={{ lat: shop.latitude, lng: shop.longitude }}
-                      animation={google.maps.Animation.DROP}
-                    />
-                  </GoogleMap>
-
-                  <a
-                    href={mapsUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-center gap-2 py-2.5 bg-white border-t border-gray-100 text-sm text-green-600 hover:bg-green-50 transition-colors font-medium"
-                  >
-                    📍 Open in Google Maps
-                  </a>
-                </div>
-              )}
             </div>
           </div>
         </div>

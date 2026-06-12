@@ -15,7 +15,7 @@ export const getProduct = (slug: string) =>
 
 // ── Shops ─────────────────────────────────────────
 export const getShops = (params: {
-  city?: string; delivery?: boolean;
+  q?: string; city?: string; delivery?: boolean; verified?: boolean;
   lat?: number; lng?: number; radius_km?: number; page?: number;
 }) => apiClient.get<PaginatedResponse<Shop>>('/shops', { params });
 

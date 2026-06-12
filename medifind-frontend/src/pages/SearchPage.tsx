@@ -1,16 +1,21 @@
 import { useState, useEffect } from 'react';
-import { GoogleMap, Marker, Circle } from '@react-google-maps/api';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation } from '../hooks/useLocation';
 import Layout from '../components/layout/Layout';
 import ProductCard from '../components/ui/ProductCard';
 import ShopCard from '../components/ui/ShopCard';
 import Spinner from '../components/ui/Spinner';
-import { useGoogleMaps } from '../hooks/useGoogleMaps';
 import { searchProducts, getCategories, getShops } from '../api/public';
 import type { Product, Category, Shop } from '../types';
 
 export default function SearchPage() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const {
+    lat: userLat, lng: userLng,
+    loading: locLoading, error: locError,
+    granted, requestLocation
+  } = useLocation();
 
   // Read everything from the URL — this is the single source of truth
   const q          = searchParams.get('q') ?? '';
@@ -20,7 +25,6 @@ export default function SearchPage() {
   const lat        = searchParams.get('lat') ?? '';
   const lng        = searchParams.get('lng') ?? '';
   const radiusKm   = searchParams.get('radius_km') ?? '5';
-  const { isLoaded } = useGoogleMaps();
 
   const [query,      setQuery]      = useState(q);
   const [products,   setProducts]   = useState<Product[]>([]);
@@ -30,7 +34,6 @@ export default function SearchPage() {
   const [page,       setPage]       = useState(1);
   const [lastPage,   setLastPage]   = useState(1);
   const [loading,    setLoading]    = useState(true);
-  const [locating,   setLocating]   = useState(false);
 
   // Load categories once for the sidebar filter
   useEffect(() => {
@@ -46,6 +49,8 @@ export default function SearchPage() {
     if (type === 'shops') {
       // Searching for shops
       getShops({
+        q:         q    || undefined,
+        verified:  true,
         city:      city || undefined,
         lat:       lat  ? Number(lat)  : undefined,
         lng:       lng  ? Number(lng)  : undefined,
@@ -75,7 +80,15 @@ export default function SearchPage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
-    setSearchParams({ q: query, type: 'products' });
+    setSearchParams({
+      q: query.trim(),
+      type,
+      ...(type === 'products' && categoryId ? { category_id: categoryId } : {}),
+      ...(city ? { city } : {}),
+      ...(lat ? { lat } : {}),
+      ...(lng ? { lng } : {}),
+      ...(lat && lng ? { radius_km: radiusKm } : {}),
+    });
   };
 
   // When a filter changes — update URL, reset to page 1
@@ -90,48 +103,20 @@ export default function SearchPage() {
     }
   };
 
-  const useMyLocation = () => {
-    if (!navigator.geolocation) return;
-
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      position => {
-        const current = Object.fromEntries(searchParams.entries());
-        setPage(1);
-        setSearchParams({
-          ...current,
-          type: 'shops',
-          lat: String(position.coords.latitude),
-          lng: String(position.coords.longitude),
-          radius_km: current.radius_km ?? radiusKm,
-          page: '1',
-        });
-        setLocating(false);
-      },
-      () => setLocating(false),
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  };
-
-  const clearLocation = () => {
-    const current = Object.fromEntries(searchParams.entries());
-    delete current.lat;
-    delete current.lng;
-    delete current.radius_km;
-    setPage(1);
-    setSearchParams({ ...current, page: '1' });
-  };
-
   return (
     <Layout>
       <div className="max-w-6xl mx-auto px-4 py-8">
 
         {/* ── Search bar ── */}
-        <form onSubmit={handleSearch} className="flex gap-2 mb-8">
+        <form onSubmit={handleSearch} className="flex gap-2 mb-3 md:mb-8">
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search for medicines, cosmetics, supplements..."
+            placeholder={
+              type === 'shops'
+                ? 'Search verified shops by shop or owner name...'
+                : 'Search for medicines, cosmetics, supplements...'
+            }
             className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-green-400 transition-colors"
           />
           <button
@@ -141,6 +126,25 @@ export default function SearchPage() {
             Search
           </button>
         </form>
+
+        <div className="md:hidden flex gap-2 mb-8">
+          {[
+            { label: 'Products',        value: 'products' },
+            { label: 'Verified shops',  value: 'shops'    },
+          ].map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => applyFilter('type', opt.value)}
+              className={`flex-1 text-sm px-3 py-2 rounded-lg transition-colors ${
+                type === opt.value
+                  ? 'bg-green-50 text-green-700 font-medium'
+                  : 'text-gray-600 bg-gray-50'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
 
         <div className="flex gap-8">
 
@@ -154,7 +158,7 @@ export default function SearchPage() {
             <div className="flex flex-col gap-1 mb-6">
               {[
                 { label: 'Products',  value: 'products' },
-                { label: 'Shops',     value: 'shops'    },
+                { label: 'Verified shops', value: 'shops' },
               ].map(opt => (
                 <button
                   key={opt.value}
@@ -224,46 +228,70 @@ export default function SearchPage() {
               ))}
             </div>
 
-            {type === 'shops' && (
-              <div className="mt-6">
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">
-                  Distance
-                </p>
-                <button
-                  onClick={useMyLocation}
-                  disabled={locating}
-                  className={`w-full text-left text-sm px-3 py-2 rounded-lg transition-colors ${
-                    lat && lng
-                      ? 'bg-blue-50 text-blue-700 font-medium'
-                      : 'text-gray-600 hover:bg-gray-50'
-                  } disabled:opacity-60`}
-                >
-                  {locating ? 'Finding location...' : 'Near me'}
-                </button>
+            {/* Location section in sidebar */}
+            <div className="mt-6">
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">
+                Your location
+              </p>
 
-                {lat && lng && (
-                  <>
-                    <select
-                      value={radiusKm}
-                      onChange={e => applyFilter('radius_km', e.target.value)}
-                      className="mt-2 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-600 outline-none focus:border-green-400 bg-white"
-                    >
-                      {[5, 10, 20, 50].map(radius => (
-                        <option key={radius} value={radius}>
-                          Within {radius} km
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={clearLocation}
-                      className="mt-2 text-xs text-gray-400 hover:text-gray-600"
-                    >
-                      Clear location
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
+              {granted ? (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-xs text-green-600 font-medium">
+                    <span>📍</span> Location active
+                  </div>
+                  <button
+                    onClick={() => {
+                      const current = Object.fromEntries(searchParams.entries());
+                      setPage(1);
+                      setSearchParams({
+                        ...current,
+                        type: 'shops',
+                        lat: String(userLat),
+                        lng: String(userLng),
+                        page: '1',
+                      });
+                    }}
+                    className="w-full text-left text-sm px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
+                  >
+                    Shops near me
+                  </button>
+                  <button
+                    onClick={() => navigate(`/search?type=shops&lat=${userLat}&lng=${userLng}&radius_km=2`)}
+                    className="w-full text-left text-sm px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
+                  >
+                    Within 2 km
+                  </button>
+                  <button
+                    onClick={() => navigate(`/search?type=shops&lat=${userLat}&lng=${userLng}&radius_km=10`)}
+                    className="w-full text-left text-sm px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
+                  >
+                    Within 10 km
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <button
+                    onClick={requestLocation}
+                    disabled={locLoading}
+                    className="w-full flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-60 font-medium"
+                  >
+                    {locLoading ? (
+                      <>
+                        <div className="w-3 h-3 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                        Getting location...
+                      </>
+                    ) : (
+                      <>📍 Find shops near me</>
+                    )}
+                  </button>
+                  {locError && (
+                    <p className="text-xs text-red-500 mt-2 leading-relaxed">
+                      {locError}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
 
           </aside>
 
@@ -348,57 +376,14 @@ export default function SearchPage() {
                   <div className="text-center py-20 text-gray-400">
                     <p className="text-4xl mb-3">🏪</p>
                     <p className="text-sm font-medium">No shops found</p>
-                    <p className="text-xs mt-1">Try a different city or remove filters</p>
+                    <p className="text-xs mt-1">Try a different shop name, owner name, or city</p>
                   </div>
                 ) : (
-                  <>
-                    {lat && lng && isLoaded && (
-                      <div className="mb-4 rounded-xl overflow-hidden border border-gray-100">
-                        <GoogleMap
-                          mapContainerStyle={{ width: '100%', height: '200px' }}
-                          center={{ lat: Number(lat), lng: Number(lng) }}
-                          zoom={13}
-                          options={{
-                            streetViewControl: false,
-                            mapTypeControl:    false,
-                            fullscreenControl: false,
-                            zoomControl:       false,
-                          }}
-                        >
-                          {/* Customer location marker */}
-                          <Marker
-                            position={{ lat: Number(lat), lng: Number(lng) }}
-                            icon={{
-                              path: google.maps.SymbolPath.CIRCLE,
-                              scale: 8,
-                              fillColor: '#1D9E75',
-                              fillOpacity: 1,
-                              strokeColor: '#fff',
-                              strokeWeight: 2,
-                            }}
-                          />
-                          {/* Search radius circle */}
-                          <Circle
-                            center={{ lat: Number(lat), lng: Number(lng) }}
-                            radius={Number(radiusKm) * 1000}
-                            options={{
-                              fillColor:     '#1D9E75',
-                              fillOpacity:   0.08,
-                              strokeColor:   '#1D9E75',
-                              strokeOpacity: 0.3,
-                              strokeWeight:  1,
-                            }}
-                          />
-                        </GoogleMap>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {shops.map(s => (
-                        <ShopCard key={s.id} shop={s} />
-                      ))}
-                    </div>
-                  </>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {shops.map(s => (
+                      <ShopCard key={s.id} shop={s} />
+                    ))}
+                  </div>
                 )}
               </>
             )}
