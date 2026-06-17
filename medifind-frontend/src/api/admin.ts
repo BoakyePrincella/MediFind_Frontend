@@ -1,6 +1,6 @@
 import apiClient from './client';
 import type {
-  Shop, Product, Category,
+  Shop, Product, Category, Order,
   PaginatedResponse
 } from '../types';
 
@@ -66,3 +66,16 @@ export const adminAddProductToShop = (
   shopId: number,
   data: { product_id: number; price: number; in_stock: boolean }
 ) => apiClient.post(`/admin/shops/${shopId}/products`, data);
+
+export const adminGetOrders = (params?: {
+  status?: string; shop_id?: number; page?: number;
+}) => apiClient.get<{ data: PaginatedResponse<Order> }>('/admin/orders', { params });
+
+export const adminGetOrderStats = () =>
+  apiClient.get<{ data: {
+    total: number; pending: number; confirmed: number; ready: number;
+    completed: number; cancelled: number; revenue: number;
+  } }>('/admin/orders/stats');
+
+export const adminUpdateOrderStatus = (id: number | string, status: string) =>
+  apiClient.patch<{ data: Order }>(`/admin/orders/${id}/status`, { status });

@@ -1,4 +1,4 @@
-const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
+const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost/api/v1';
 const appBaseUrl = apiBaseUrl.replace(/\/api\/v1\/?$/, '');
 const storageBaseUrl = import.meta.env.VITE_STORAGE_URL ?? `${appBaseUrl}/storage`;
 

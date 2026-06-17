@@ -79,11 +79,12 @@ export default function AdminDashboard() {
 
         {/* Quick actions */}
         <h2 className="text-sm font-semibold text-gray-600 mb-3">Quick actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[
             { label: 'Add a new shop',       desc: 'Onboard a pharmacy or cosmetics shop', path: '/admin/shops',      icon: '🏪' },
             { label: 'Add a product',         desc: 'Add to the global product catalogue',  path: '/admin/products',   icon: '💊' },
             { label: 'Manage categories',     desc: 'Add or edit product categories',        path: '/admin/categories', icon: '📂' },
+            { label: 'Review orders',         desc: 'Monitor customer orders and delivery',  path: '/admin/orders',     icon: '🧾' },
           ].map(action => (
             <Link
               key={action.path}

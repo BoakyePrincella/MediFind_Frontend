@@ -2,8 +2,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const navLinks = [
-  { label: 'Overview',  path: '/dashboard',           icon: '📊' },
+  { label: 'Dashboard', path: '/dashboard',           icon: '📊' },
   { label: 'Inventory', path: '/dashboard/inventory',  icon: '📦' },
+  { label: 'Orders',    path: '/dashboard/orders',     icon: '🧾' },
   { label: 'Settings',  path: '/dashboard/settings',   icon: '⚙️' },
 ];
 

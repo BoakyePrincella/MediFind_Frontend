@@ -2,19 +2,25 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import Spinner from '../components/ui/Spinner';
+import { addToCart } from '../api/orders';
 import { getProduct } from '../api/public';
+import { useAuth } from '../context/AuthContext';
 import type { Product, ShopProduct } from '../types';
 import { storageUrl } from '../utils/media';
 
 export default function ProductPage() {
   const { slug }   = useParams<{ slug: string }>();
   const navigate   = useNavigate();
+  const { user }   = useAuth();
 
   const [product,      setProduct]      = useState<Product | null>(null);
   const [shopProducts, setShopProducts] = useState<ShopProduct[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [cityFilter,   setCityFilter]   = useState('');
   const [sortBy,       setSortBy]       = useState<'price' | 'distance'>('price');
+  const [addingId,     setAddingId]     = useState<number | null>(null);
+  const [cartMessage,  setCartMessage]  = useState('');
+  const [cartError,    setCartError]    = useState('');
 
   useEffect(() => {
     if (!slug) return;
@@ -47,6 +53,31 @@ export default function ProductPage() {
   const inStockCount    = filtered.filter(sp => sp.in_stock).length;
   const lowestPrice     = filtered.length > 0 ? Math.min(...filtered.map(sp => sp.price)) : null;
   const highestPrice    = filtered.length > 0 ? Math.max(...filtered.map(sp => sp.price)) : null;
+
+  const handleAddToCart = async (sp: ShopProduct) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    setAddingId(sp.id);
+    setCartMessage('');
+    setCartError('');
+
+    try {
+      await addToCart({
+        shop_product_id: sp.id,
+        product_id: sp.product_id,
+        shop_id: sp.shop_id,
+        quantity: 1,
+      });
+      setCartMessage(`${product?.name ?? 'Product'} added to cart.`);
+    } catch (err: any) {
+      setCartError(err.response?.data?.message ?? 'Could not add this product to cart.');
+    } finally {
+      setAddingId(null);
+    }
+  };
 
   if (loading) return <Layout><Spinner /></Layout>;
   if (!product) return null;
@@ -174,6 +205,19 @@ export default function ProductPage() {
           </div>
         </div>
 
+        {cartMessage && (
+          <div className="bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl px-4 py-3 mb-4 flex items-center justify-between gap-3">
+            <span>{cartMessage}</span>
+            <Link to="/cart" className="font-medium hover:underline">View cart</Link>
+          </div>
+        )}
+
+        {cartError && (
+          <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3 mb-4">
+            {cartError}
+          </div>
+        )}
+
         {/* ── Shop listings ── */}
         {filtered.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
@@ -277,6 +321,16 @@ export default function ProductPage() {
                   <p className="text-xs text-gray-300 mt-1">
                     View shop →
                   </p>
+                  <button
+                    onClick={e => {
+                      e.stopPropagation();
+                      handleAddToCart(sp);
+                    }}
+                    disabled={!sp.in_stock || addingId === sp.id}
+                    className="mt-2 text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {addingId === sp.id ? 'Adding...' : 'Add'}
+                  </button>
                 </div>
 
               </div>

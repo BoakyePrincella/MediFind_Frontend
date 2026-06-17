@@ -113,6 +113,30 @@ export default function HomePage() {
             </button>
           ))}
         </div>
+
+        <div className="max-w-3xl mx-auto mt-8 grid grid-cols-1 md:grid-cols-3 gap-3 text-left">
+          <button
+            onClick={() => navigate('/search')}
+            className="bg-gray-50 border border-gray-100 rounded-xl p-4 hover:border-green-200 hover:bg-green-50 transition-colors"
+          >
+            <p className="text-sm font-semibold text-gray-900">1. Browse nearby shops</p>
+            <p className="text-xs text-gray-500 mt-1">Search a product, choose the closest shop, then add it to cart.</p>
+          </button>
+          <button
+            onClick={() => navigate('/cart')}
+            className="bg-gray-50 border border-gray-100 rounded-xl p-4 hover:border-green-200 hover:bg-green-50 transition-colors"
+          >
+            <p className="text-sm font-semibold text-gray-900">2. Cart / Checkout</p>
+            <p className="text-xs text-gray-500 mt-1">Review products, then choose walk-in pickup or delivery.</p>
+          </button>
+          <button
+            onClick={() => navigate('/orders')}
+            className="bg-gray-50 border border-gray-100 rounded-xl p-4 hover:border-green-200 hover:bg-green-50 transition-colors"
+          >
+            <p className="text-sm font-semibold text-gray-900">3. Orders / Delivery</p>
+            <p className="text-xs text-gray-500 mt-1">Track shop confirmation, pickup code, and delivery status.</p>
+          </button>
+        </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-10">

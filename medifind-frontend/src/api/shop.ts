@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { Shop, ShopProduct, PaginatedResponse } from '../types';
+import type { Order, Shop, ShopProduct, PaginatedResponse } from '../types';
 
 export const getMyShop = () =>
   apiClient.get<Shop>('/shop/profile');
@@ -27,3 +27,12 @@ export const updateInventoryItem = (id: number, data: {
 
 export const removeFromInventory = (id: number) =>
   apiClient.delete(`/shop/inventory/${id}`);
+
+export const getShopOrders = (params?: { status?: string; page?: number }) =>
+  apiClient.get<{ data: PaginatedResponse<Order> }>('/shop/orders', { params });
+
+export const getShopOrder = (id: number | string) =>
+  apiClient.get<{ data: Order }>(`/shop/orders/${id}`);
+
+export const updateShopOrderStatus = (id: number | string, status: string) =>
+  apiClient.patch<{ data: Order }>(`/shop/orders/${id}/status`, { status });

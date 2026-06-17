@@ -6,6 +6,7 @@ const navLinks = [
   { label: 'Shops',       path: '/admin/shops',       icon: '🏪' },
   { label: 'Products',    path: '/admin/products',    icon: '💊' },
   { label: 'Categories',  path: '/admin/categories',  icon: '📂' },
+  { label: 'Orders',      path: '/admin/orders',      icon: '🧾' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

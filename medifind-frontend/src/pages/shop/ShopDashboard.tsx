@@ -138,7 +138,7 @@ export default function ShopDashboard() {
         )}
 
         {/* ── Quick actions ── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link
             to="/dashboard/inventory"
             className="bg-white rounded-xl border border-gray-100 p-5 hover:border-green-200 hover:shadow-sm transition-all flex items-center gap-4"
@@ -150,6 +150,21 @@ export default function ShopDashboard() {
               <p className="text-sm font-medium text-gray-800">Manage inventory</p>
               <p className="text-xs text-gray-400 mt-0.5">
                 Add products, update prices, toggle stock
+              </p>
+            </div>
+          </Link>
+
+          <Link
+            to="/dashboard/orders"
+            className="bg-white rounded-xl border border-gray-100 p-5 hover:border-green-200 hover:shadow-sm transition-all flex items-center gap-4"
+          >
+            <div className="w-11 h-11 bg-green-50 rounded-xl flex items-center justify-center text-xl shrink-0">
+              🧾
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-800">Track orders</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Follow customer payments, pickups, and delivery status
               </p>
             </div>
           </Link>

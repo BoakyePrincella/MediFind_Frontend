@@ -52,17 +52,17 @@ export default function Navbar() {
           </div>
         </form>
 
-          {/* Nav links */}
-          {/* <div className="hidden md:flex items-center gap-6 text-sm text-gray-500">
-            <Link to="/search" className="hover:text-gray-800 transition-colors">Browse</Link>
-            <Link to="/search?category=pharmacy" className="hover:text-gray-800 transition-colors">Pharmacy</Link>
-            <Link to="/search?category=cosmetics" className="hover:text-gray-800 transition-colors">Cosmetics</Link>
-          </div> */}
+        <div className="flex items-center gap-3 md:gap-4 text-sm text-gray-500">
+          <Link to="/search" className="hover:text-gray-800 transition-colors">Browse</Link>
+          <Link to="/cart" className="hover:text-gray-800 transition-colors">Cart / Checkout</Link>
+          <Link to="/orders" className="hover:text-gray-800 transition-colors">Orders / Delivery</Link>
+        </div>
 
         {/* Auth area */}
         <div className="ml-auto flex items-center gap-2 shrink-0">
           {user ? (
-            <div className="relative">
+            <>
+              <div className="relative">
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900"
@@ -103,6 +103,15 @@ export default function Navbar() {
                         Admin Panel
                       </Link>
                     )}
+                    {user.role === 'customer' && (
+                      <Link
+                        to="/orders"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        My Orders
+                      </Link>
+                    )}
                     <button
                       onClick={handleLogout}
                       className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-50"
@@ -112,7 +121,8 @@ export default function Navbar() {
                   </div>
                 </>
               )}
-            </div>
+              </div>
+            </>
           ) : (
             <>
               <Link

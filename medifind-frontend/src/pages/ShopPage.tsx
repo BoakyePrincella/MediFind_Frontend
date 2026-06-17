@@ -2,18 +2,24 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import Spinner from '../components/ui/Spinner';
+import { addToCart } from '../api/orders';
 import { getShop } from '../api/public';
+import { useAuth } from '../context/AuthContext';
 import type { Shop, ShopProduct } from '../types';
 import { storageUrl } from '../utils/media';
 
 export default function ShopPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [shop, setShop] = useState<Shop | null>(null);
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [addingId, setAddingId] = useState<number | null>(null);
+  const [cartMessage, setCartMessage] = useState('');
+  const [cartError, setCartError] = useState('');
 
   useEffect(() => {
     if (!slug) return;
@@ -42,6 +48,31 @@ export default function ShopPage() {
 
   const inStockCount = products.filter(sp => sp.in_stock).length;
   const outOfStockCount = products.filter(sp => !sp.in_stock).length;
+
+  const handleAddToCart = async (sp: ShopProduct) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    setAddingId(sp.id);
+    setCartMessage('');
+    setCartError('');
+
+    try {
+      await addToCart({
+        shop_product_id: sp.id,
+        product_id: sp.product_id,
+        shop_id: sp.shop_id,
+        quantity: 1,
+      });
+      setCartMessage(`${sp.product?.name ?? 'Product'} added to cart.`);
+    } catch (err: any) {
+      setCartError(err.response?.data?.message ?? 'Could not add this product to cart.');
+    } finally {
+      setAddingId(null);
+    }
+  };
 
   if (loading) return <Layout><Spinner /></Layout>;
   if (!shop) return null;
@@ -177,6 +208,19 @@ export default function ShopPage() {
           )}
         </div>
 
+        {cartMessage && (
+          <div className="bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl px-4 py-3 mb-4 flex items-center justify-between gap-3">
+            <span>{cartMessage}</span>
+            <Link to="/cart" className="font-medium hover:underline">View cart</Link>
+          </div>
+        )}
+
+        {cartError && (
+          <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3 mb-4">
+            {cartError}
+          </div>
+        )}
+
         {products.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
             <p className="text-sm font-medium text-gray-600">No products listed yet</p>
@@ -199,9 +243,8 @@ export default function ShopPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {filtered.map(sp => (
-              <Link
+              <div
                 key={sp.id}
-                to={`/products/${sp.product?.slug}`}
                 className={`bg-white rounded-xl border p-4 flex justify-between items-start hover:shadow-sm transition-all ${
                   sp.in_stock
                     ? 'border-gray-100 hover:border-green-200'
@@ -209,9 +252,12 @@ export default function ShopPage() {
                 }`}
               >
                 <div className="flex-1 min-w-0 pr-3">
-                  <p className="text-sm font-medium text-gray-800 truncate">
+                  <Link
+                    to={`/products/${sp.product?.slug}`}
+                    className="text-sm font-medium text-gray-800 truncate hover:text-green-600 block"
+                  >
                     {sp.product?.name}
-                  </p>
+                  </Link>
                   <p className="text-xs text-gray-400 mt-0.5">
                     {sp.product?.category?.name}
                     {sp.product?.brand && (
@@ -236,8 +282,15 @@ export default function ShopPage() {
                   }`}>
                     {sp.in_stock ? 'In stock' : 'Out of stock'}
                   </span>
+                  <button
+                    onClick={() => handleAddToCart(sp)}
+                    disabled={!sp.in_stock || addingId === sp.id}
+                    className="block ml-auto mt-2 text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {addingId === sp.id ? 'Adding...' : 'Add'}
+                  </button>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}
